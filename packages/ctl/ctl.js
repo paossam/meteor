@@ -57,7 +57,8 @@ Ctl.Commands.push({
           "mongo-livedata": {
             url: appConfig.MONGO_URL
           }
-        }
+        },
+        proxyServiceName: appConfig.proxyServiceName || "proxy"
       };
 
       // XXX args? env?
