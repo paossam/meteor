@@ -226,17 +226,19 @@ _.extend(Slice.prototype, {
     // way we get one error about it instead of a new error at each
     // stage in the build process in which we try to retrieve the
     // package.
-    var scrubbedUses = [];
-    _.each(self.uses, function (u) {
-      var parts = u.spec.split('.');
-      var pkg = self.pkg.library.get(parts[0], /* throwOnError */ false);
-      if (! pkg) {
-        buildmessage.error("no such package: '" + parts[0] + "'");
-        // recover by omitting this package from 'uses'
-      } else
-        scrubbedUses.push(u);
+    _.each(['uses', 'implies'], function (field) {
+      var scrubbed = [];
+      _.each(self[field], function (u) {
+        var parts = u.spec.split('.');
+        var pkg = self.pkg.library.get(parts[0], /* throwOnError */ false);
+        if (! pkg) {
+          buildmessage.error("no such package: '" + parts[0] + "'");
+          // recover by omitting this package from the field
+        } else
+          scrubbed.push(u);
+      });
+      self[field] = scrubbed;
     });
-    self.uses = scrubbedUses;
 
     _.each(self.getSourcesFunc(), function (source) {
       var relPath = source.relPath;
@@ -531,7 +533,7 @@ _.extend(Slice.prototype, {
     // we use. Note that in the case of conflicting symbols, later
     // packages get precedence.
     var imports = {}; // map from symbol to supplying package name
-    _.each(_.values(self.uses), function (u) {
+    _.each(_.values(self.effectiveUses()), function (u) {
       // We don't get imports from unordered dependencies (since they may not be
       // defined yet) or from weak dependencies (because the meaning of a name
       // shouldn't be affected by the non-local decision of whether or not
@@ -575,6 +577,14 @@ _.extend(Slice.prototype, {
     return _.union(self.resources, jsResources); // union preserves order
   },
 
+  // Returns the "uses" of this package (object with spec, weak, unordered
+  // fields).
+  // XXX implement "implies" and make this return implied uses too
+  effectiveUses: function () {
+    var self = this;
+    return self.uses;
+  },
+
   // Return an array of all plugins that are active in this slice, as
   // a list of Packages.
   _activePluginPackages: function () {
@@ -588,7 +598,7 @@ _.extend(Slice.prototype, {
     // or particular to a slice.
     var ret = [self.pkg];
 
-    _.each(self.uses, function (u) {
+    _.each(self.effectiveUses(), function (u) {
       // We don't use plugins from weak dependencies, because the ability to
       // compile a certain type of file shouldn't depend on whether or not some
       // unrelated package in the target has a dependency.

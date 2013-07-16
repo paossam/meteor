@@ -534,7 +534,7 @@ _.extend(Target.prototype, {
       if (_.has(getsUsed, slice.id))
         return;
       getsUsed[slice.id] = slice;
-      _.each(slice.uses, function (u) {
+      _.each(slice.effectiveUses(), function (u) {
         if (u.weak)
           return;
         _.each(library.getSlices(u.spec, self.arch), addToGetsUsed);
@@ -563,7 +563,7 @@ _.extend(Target.prototype, {
       if (!_.has(needed, slice.id))
         return;
 
-      _.each(slice.uses, function (u) {
+      _.each(slice.effectiveUses(), function (u) {
         // If this is an unordered dependency, then there's no reason to add it
         // *now*, and for all we know, `u` will depend on `slice` and need to be
         // added after it. So we ignore this edge. Because we did follow this
